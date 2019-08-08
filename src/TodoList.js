@@ -1,57 +1,66 @@
-import React, {Component} from 'react';
-import 'antd/dist/antd.css'
-import store from './store'
-import {getDeleteItemAction, getInputChangeAction, getItemAddAction} from './store/actionCreaters';
-import TodoListUI from './TodoListUI'
-import axios from 'axios'
-export default class TodoList extends Component {
-    constructor(props) {
-        super(props);
-        this.state = store.getState();  //组件里的数据来自与store里的数据
-        this.handleInputChange = this.handleInputChange.bind(this);
-        this.handleStoreChange = this.handleStoreChange.bind(this);
-        this.handleButtonClick = this.handleButtonClick.bind(this);
-        this.handleItemDelete = this.handleItemDelete.bind(this);
-        //标准的观察者模式，该组件要观察store的改变了
-        store.subscribe(this.handleStoreChange);
-    }
+import React, { Component } from "react";
+import {connect} from 'react-redux';
 
-    render() {
-        return (
-            <TodoListUI
-                inputValue = {this.state.inputValue}
-                list = {this.state.list}
-                handleInputChange = {this.handleInputChange}
-                handleButtonClick = {this.handleButtonClick}
-                handleItemDelete = {this.handleItemDelete}
-            />)
+const TodoList = (props) => {
+// class TodoList extends Component {  //UI组件可以写为无状态组件
 
-    }
+    const { inputValue, chanInputValue, handleClick } = props;  //结构赋值来简化代码,可以对比21行
+        
+    return (
+        <div>
+                <div>
+                    <input 
+                        value={inputValue}
+                        onChange={chanInputValue}
+                    />
+                    <button onClick={handleClick} >提交</button>
+                </div>
+                <ul>
+                    {
+                        props.list.map((item,index)=>{
+                            return <li onClick={props.handleDelete} key={index}> {item} </li>
+                        })
+                    }
+                
+                </ul>
+        </div>
+    )
+}
 
-    componentDidMount() {
-        axios.get('http://localhost:3000/todoList.json').then((res)=>{
-            console.log(res);
-        })
-    }
-
-    handleItemDelete(index) {
-        const action = getDeleteItemAction(index);
-        store.dispatch(action);
-    }
-
-    handleInputChange(e) {
-        //ACTION
-        const action = getInputChangeAction(e.target.value);
-        store.dispatch(action); //把action传递给了store
-    }
-
-    handleStoreChange() {
-        //当我感知store变化了，则当前组件改变state状态
-        this.setState(store.getState());
-    }
-
-    handleButtonClick() {
-        const action = getItemAddAction();
-        store.dispatch(action);
+const mapStateToProps = (state) => { //将store里的inputvalue映射到state的inputvalue
+    return {
+        inputValue: state.inputValue,
+        list: state.list
     }
 }
+
+const mapDispatchToProps = (dispatch) => {
+    return {
+        chanInputValue(e){
+            const action = {
+                type: 'change_input_value',
+                value: e.target.value
+            }
+            dispatch(action);
+        },
+
+        handleClick(){
+            const action = {
+                type: 'add_item'
+            }
+            dispatch(action);
+        },
+
+        handleDelete(index){
+            const action = {
+                type: 'delete_item',
+                index
+            }
+            dispatch(action);
+        }
+
+    }
+}
+
+export default connect(mapStateToProps,mapDispatchToProps)(TodoList); //让store和TodoList连接，因为TodoList在provider里
+// export default TodoList;
